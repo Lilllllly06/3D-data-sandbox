@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Data Sandbox</title>
+  <link rel="stylesheet" href="src/css/style.css">
+  
+  <!-- Load essential libraries first - Using CDN for reliability -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Load OrbitControls *after* THREE.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="public/libs/papa-stub.js"></script> <!-- Keep PapaParse local for now -->
+  
+  <!-- Then load application scripts in order -->
+  <script src="src/js/dataProcessor.js"></script>
+  <script src="src/js/3dScene.js"></script>
+  <script src="src/js/ui.js"></script>
+</head>
+<body>
+  <div id="app">
+    <div id="sidebar">
+      <h2>3D Data Sandbox</h2>
+      
+      <div class="control-group">
+        <button id="open-file-btn">Import Data</button>
+        <input type="file" id="file-input" style="display: none;" accept=".csv,.json" />
+      </div>
+      
+      <div class="control-group">
+        <h3>Layout</h3>
+        <select id="layout-select" disabled>
+          <option value="scatter">Scatter Plot</option>
+          <option value="grid">Grid Layout</option>
+          <option value="kmeans">K-Means Clusters</option>
+        </select>
+        <div class="form-group sub-group" id="kmeans-options" style="display: none;">
+          <label for="kmeans-clusters">Number of Clusters (K):</label>
+          <input type="number" id="kmeans-clusters" value="3" min="2" max="20" disabled>
+        </div>
+      </div>
+      
+      <div class="control-group">
+        <h3>Appearance</h3>
+        <div class="form-group">
+          <label for="color-column-select">Color By Column:</label>
+          <select id="color-column-select" disabled>
+            <option value="">Default</option>
+            <!-- Options will be populated dynamically -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="node-shape-select">Node Shape</label>
+          <select id="node-shape-select" disabled>
+            <option value="cube">Cube</option>
+            <option value="sphere">Sphere</option>
+            <option value="icosahedron">Icosahedron</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="node-size-slider">Node Size</label>
+          <input type="range" id="node-size-slider" min="0.1" max="5" step="0.1" value="1" disabled>
+        </div>
+        <div class="form-group">
+          <label>Show Connections</label>
+          <input type="checkbox" id="show-connections" disabled>
+        </div>
+      </div>
+      
+      <div class="control-group">
+        <h3>Filtering</h3>
+        <div class="form-group">
+          <label for="filter-column-select">Filter Column:</label>
+          <select id="filter-column-select" disabled>
+             <option value="">None</option>
+             <!-- Options will be populated dynamically -->
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="filter-value-input">Filter Value (contains):</label>
+          <input type="text" id="filter-value-input" placeholder="Enter text to filter..." disabled>
+        </div>
+        <button id="apply-filter-btn" disabled>Apply Filter</button>
+      </div>
+      
+      <div class="control-group">
+        <h3>Camera Controls</h3>
+        <button id="reset-view-btn" class="data-dependent" disabled>Reset View</button>
+      </div>
+      
+      <div class="control-group">
+        <h3>Save/Export</h3>
+        <button id="save-scene-btn" class="data-dependent" disabled>Save Scene</button>
+        <button id="export-screenshot-btn" class="data-dependent" disabled>Export Screenshot</button>
+      </div>
+      
+      <div class="control-group">
+        <h3>Analysis</h3>
+        <div class="form-group">
+          <button id="detect-outliers-btn" disabled>Highlight Outliers</button>
+          <span class="info-text">(Based on spatial distance)</span>
+        </div>
+        <div class="form-group sub-group">
+          <label for="corr-col1-select">Correlation Column 1:</label>
+          <select id="corr-col1-select" disabled><option value="">Select...</option></select>
+          <label for="corr-col2-select">Correlation Column 2:</label>
+          <select id="corr-col2-select" disabled><option value="">Select...</option></select>
+          <label for="corr-threshold-input">Min Correlation:</label>
+          <input type="number" id="corr-threshold-input" value="0.7" min="0" max="1" step="0.1" disabled>
+          <button id="show-correlation-btn" disabled>Show Correlation Lines</button>
+        </div>
+      </div>
+      
+      <div id="data-info"></div>
+    </div>
+    
+    <div id="visualization-container"></div>
+    
+    <div id="tooltip"></div>
+    
+    <div id="status-message"></div>
+    <div id="loading-indicator">Loading...</div>
+    
+    <!-- Error message display -->
+    <div id="errorMessage" style="display:none; position:fixed; top:0; left:0; right:0; padding:15px; background-color:#f44336; color:white; text-align:center; z-index: 9999;"></div>
+  </div>
+
+  <!-- Initialization logic is now handled entirely within ui.js -->
+</body>
+</html>

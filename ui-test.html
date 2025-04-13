@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI Controller Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .test-section {
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+    h1 {
+      color: #333;
+    }
+    button {
+      padding: 8px 16px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #3e8e41;
+    }
+    #log {
+      background: #f4f4f4;
+      border: 1px solid #ddd;
+      padding: 10px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre-wrap;
+      margin-top: 20px;
+    }
+    .success {
+      color: green;
+    }
+    .error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>UI Controller Test</h1>
+  
+  <div class="test-section">
+    <h2>Load Sample Data</h2>
+    <button id="load-json">Load JSON</button>
+    <button id="load-csv">Load CSV</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>UI Controller Methods</h2>
+    <button id="test-init">Test Initialization</button>
+    <button id="test-import">Test Import Data</button>
+    <button id="test-visualization">Test Visualization</button>
+    <button id="test-saveScene">Test Save Scene</button>
+    <button id="test-screenshot">Test Screenshot</button>
+  </div>
+  
+  <div class="test-section">
+    <h2>Error Handling</h2>
+    <button id="test-empty-file">Test Empty File</button>
+    <button id="test-invalid-json">Test Invalid JSON</button>
+    <button id="test-invalid-csv">Test Invalid CSV</button>
+  </div>
+  
+  <h2>Test Log</h2>
+  <div id="log"></div>
+  
+  <script>
+    // Log helper
+    function log(message, isError = false) {
+      const logEl = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = isError ? 'error' : 'success';
+      const timestamp = new Date().toISOString().substring(11, 23);
+      entry.textContent = `[${timestamp}] ${message}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(`${isError ? 'ERROR' : 'INFO'}: ${message}`);
+    }
+    
+    // Setup tests after window loads
+    window.addEventListener('load', function() {
+      // Mock classes for testing
+      class MockDataProcessor {
+        constructor() {
+          log('MockDataProcessor initialized');
+        }
+        
+        processFile(content, extension) {
+          log(`Processing file with extension: ${extension}`);
+          return {
+            points: Array(10).fill().map((_, i) => ({
+              position: { x: i*5, y: i*3, z: i*2 },
+              color: '#ff0000',
+              label: `Point ${i}`
+            })),
+            dimensions: ['x', 'y', 'z']
+          };
+        }
+      }
+      
+      class MockScene3D {
+        constructor() {
+          log('MockScene3D initialized');
+        }
+        
+        visualizeData(points, dimensions) {
+          log(`Visualizing ${points.length} points with dimensions: ${dimensions}`);
+          return true;
+        }
+        
+        getSceneData() {
+          return { points: [], settings: {} };
+        }
+        
+        takeScreenshot() {
+          return 'data:image/png;base64,ABC123';
+        }
+      }
+      
+      // Load real UI Controller script
+      const script = document.createElement('script');
+      script.src = 'src/js/ui.js';
+      script.onerror = () => log('Failed to load UI Controller script', true);
+      script.onload = () => {
+        log('UI Controller script loaded');
+        
+        // Override required dependencies for testing
+        window.DataProcessor = MockDataProcessor;
+        window.Scene3D = MockScene3D;
+        
+        // Try to initialize UI controller
+        try {
+          window.uiController = new UIController();
+          log('UI Controller initialized successfully');
+        } catch (error) {
+          log(`UI Controller initialization failed: ${error.message}`, true);
+        }
+      };
+      document.head.appendChild(script);
+      
+      // Button event listeners
+      document.getElementById('test-init').addEventListener('click', function() {
+        log('Testing initialization...');
+        if (window.uiController && window.uiController.isFullyInitialized()) {
+          log('UI Controller is fully initialized');
+        } else {
+          log('UI Controller is NOT fully initialized', true);
+        }
+      });
+      
+      document.getElementById('test-import').addEventListener('click', function() {
+        log('Testing importData method...');
+        if (!window.uiController) {
+          return log('UI Controller not available', true);
+        }
+        
+        try {
+          const testData = {
+            content: JSON.stringify([{x: 1, y: 2, z: 3}]),
+            extension: '.json',
+            fileName: 'test.json'
+          };
+          window.uiController.importData(testData);
+          log('Import data test completed');
+        } catch (error) {
+          log(`Import data test failed: ${error.message}`, true);
+        }
+      });
+      
+      document.getElementById('load-json').addEventListener('click', function() {
+        fetch('sample-data.json')
+          .then(response => response.text())
+          .then(content => {
+            log('Loaded JSON sample data');
+            if (window.uiController) {
+              window.uiController.importData({
+                content,
+                extension: '.json',
+                fileName: 'sample-data.json'
+              });
+            }
+          })
+          .catch(error => log(`Failed to load JSON: ${error.message}`, true));
+      });
+      
+      document.getElementById('load-csv').addEventListener('click', function() {
+        fetch('sample-data.csv')
+          .then(response => response.text())
+          .then(content => {
+            log('Loaded CSV sample data');
+            if (window.uiController) {
+              window.uiController.importData({
+                content,
+                extension: '.csv',
+                fileName: 'sample-data.csv'
+              });
+            }
+          })
+          .catch(error => log(`Failed to load CSV: ${error.message}`, true));
+      });
+      
+      // Additional test buttons
+      const testButtons = [
+        'test-visualization', 'test-saveScene', 'test-screenshot'
+      ];
+      
+      testButtons.forEach(id => {
+        document.getElementById(id).addEventListener('click', function() {
+          log(`Button ${id} clicked - test not implemented yet`);
+        });
+      });
+      
+      // Error handling tests
+      document.getElementById('test-empty-file').addEventListener('click', function() {
+        log('Testing error handling for empty file...');
+        if (!window.uiController) {
+          return log('UI Controller not available', true);
+        }
+        
+        try {
+          const emptyData = {
+            content: '',
+            extension: '.json',
+            fileName: 'empty.json'
+          };
+          window.uiController.importData(emptyData);
+          log('Empty file test executed - check for error handling');
+        } catch (error) {
+          log(`Empty file test caught error: ${error.message}`);
+        }
+      });
+      
+      document.getElementById('test-invalid-json').addEventListener('click', function() {
+        log('Testing error handling for invalid JSON...');
+        if (!window.uiController) {
+          return log('UI Controller not available', true);
+        }
+        
+        try {
+          const invalidJson = {
+            content: '{ "this": "is", "invalid": json }',
+            extension: '.json',
+            fileName: 'invalid.json'
+          };
+          window.uiController.importData(invalidJson);
+          log('Invalid JSON test executed - check for error handling');
+        } catch (error) {
+          log(`Invalid JSON test caught error: ${error.message}`);
+        }
+      });
+      
+      document.getElementById('test-invalid-csv').addEventListener('click', function() {
+        log('Testing error handling for invalid CSV...');
+        if (!window.uiController) {
+          return log('UI Controller not available', true);
+        }
+        
+        try {
+          const invalidCsv = {
+            content: 'not,a,valid\ncsv,file,missing,columns\nrow3',
+            extension: '.csv',
+            fileName: 'invalid.csv'
+          };
+          window.uiController.importData(invalidCsv);
+          log('Invalid CSV test executed - check for error handling');
+        } catch (error) {
+          log(`Invalid CSV test caught error: ${error.message}`);
+        }
+      });
+    });
+  </script>
+</body>
+</html> 

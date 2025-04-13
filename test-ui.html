@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Data Sandbox - Test</title>
+  <link rel="stylesheet" href="src/css/style.css">
+  
+  <!-- Load THREE.js mock library -->
+  <script>
+    // Create mock THREE library if needed
+    console.log('Setting up mock THREE.js for testing');
+    window.THREE = {
+      Scene: function() { 
+        this.background = {}; 
+        this.add = function() {};
+        this.children = [];
+        return this;
+      },
+      WebGLRenderer: function() { 
+        return { 
+          setPixelRatio: function() {}, 
+          setSize: function() {}, 
+          domElement: document.createElement('canvas'),
+          render: function() {},
+          toDataURL: function() { return 'data:image/png;base64,MOCKEDSCREENSHOT'; }
+        }; 
+      },
+      PerspectiveCamera: function() { 
+        this.position = { 
+          set: function() {},
+          copy: function() {},
+          fromArray: function() {},
+          toArray: function() { return [0, 0, 0]; }
+        }; 
+        this.lookAt = function() {}; 
+        this.updateProjectionMatrix = function() {};
+        this.aspect = 1;
+        this.fov = 60;
+        return this;
+      },
+      Color: function() { return this; },
+      Group: function() { 
+        this.add = function() {}; 
+        this.children = [];
+        this.remove = function(child) {
+          // Mock remove functionality
+          const index = this.children.indexOf(child);
+          if (index > -1) {
+            this.children.splice(index, 1);
+          }
+        };
+        return this;
+      },
+      AxesHelper: function() { return this; },
+      GridHelper: function() { return this; },
+      AmbientLight: function() { return this; },
+      DirectionalLight: function() { 
+        this.position = { set: function() {} }; 
+        return this;
+      },
+      HemisphereLight: function() { return this; },
+      OrbitControls: function() { 
+        this.update = function() {}; 
+        this.target = { 
+          copy: function() {},
+          fromArray: function() {},
+          toArray: function() { return [0, 0, 0]; }
+        };
+        this.enableDamping = true;
+        this.dampingFactor = 0.1;
+        this.rotateSpeed = 0.7;
+        this.zoomSpeed = 1.2;
+        this.minDistance = 10;
+        this.maxDistance = 500;
+        return this;
+      },
+      Raycaster: function() { 
+        this.setFromCamera = function() {}; 
+        this.intersectObjects = function() { return []; };
+        this.params = { Points: { threshold: 1 } };
+        return this;
+      },
+      Vector2: function() { return this; },
+      Vector3: function() { 
+        this.copy = function() { return this; }; 
+        this.add = function() { return this; }; 
+        this.multiplyScalar = function() { return this; }; 
+        this.normalize = function() { return this; };
+        this.clone = function() { return new THREE.Vector3(); };
+        return this;
+      },
+      Box3: function() { 
+        this.expandByObject = function() {}; 
+        this.getCenter = function() {}; 
+        this.getSize = function() {};
+        return this;
+      },
+      BoxGeometry: function() { return this; },
+      MeshPhongMaterial: function() { 
+        this.clone = function() { return this; };
+        return this;
+      },
+      Mesh: function() { 
+        this.position = { 
+          set: function() {},
+          copy: function() {},
+          fromArray: function() {},
+          toArray: function() { return [0, 0, 0]; }
+        }; 
+        this.scale = { set: function() {} }; 
+        this.userData = {};
+        return this;
+      },
+      LineBasicMaterial: function() { return this; },
+      BufferGeometry: function() { 
+        this.setAttribute = function() {};
+        return this;
+      },
+      BufferAttribute: function() { return this; },
+      Line: function() { return this; }
+    };
+  </script>
+  
+  <!-- Create mock Papa Parse -->
+  <script>
+    console.log('Setting up mock PapaParse for testing');
+    window.Papa = {
+      parse: function(data, config) {
+        console.log('PapaParse mock: parsing CSV data');
+        // Create mock parsed data
+        const lines = data.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        const parsedData = [];
+        for(let i = 1; i < lines.length; i++) {
+          if(!lines[i].trim()) continue;
+          
+          const values = lines[i].split(',').map(v => v.trim());
+          const row = {};
+          
+          headers.forEach((header, index) => {
+            let value = values[index] || '';
+            // Try to convert to number if possible
+            const num = parseFloat(value);
+            if (!isNaN(num) && value.trim() !== '') {
+              value = num;
+            }
+            row[header] = value;
+          });
+          
+          parsedData.push(row);
+        }
+        
+        return {
+          data: parsedData,
+          errors: [],
+          meta: { fields: headers }
+        };
+      }
+    };
+  </script>
+  
+  <!-- Load application scripts -->
+  <script src="src/js/dataProcessor.js"></script>
+  <script src="src/js/3dScene.js"></script>
+  <script src="src/js/ui.js"></script>
+</head>
+<body>
+  <div id="app">
+    <div id="sidebar">
+      <h2>3D Data Sandbox</h2>
+      
+      <div class="control-group">
+        <button id="open-file-btn">Import Data</button>
+        <input type="file" id="file-input" style="display: none;" accept=".csv,.json" />
+      </div>
+      
+      <div class="control-group">
+        <h3>Layout</h3>
+        <select id="layout-select" disabled>
+          <option value="scatter">Scatter Plot</option>
+          <option value="grid">Grid Layout</option>
+          <option value="kmeans">K-Means Clusters</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <h3>Appearance</h3>
+        <div class="form-group">
+          <label>Node Size</label>
+          <input type="range" id="node-size-slider" min="0.1" max="5" step="0.1" value="1" disabled>
+        </div>
+        <div class="form-group">
+          <label>Show Connections</label>
+          <input type="checkbox" id="show-connections" disabled>
+        </div>
+      </div>
+      
+      <div class="control-group">
+        <h3>Camera Controls</h3>
+        <button id="reset-view-btn" class="data-dependent" disabled>Reset View</button>
+      </div>
+      
+      <div class="control-group">
+        <h3>Save/Export</h3>
+        <button id="save-scene-btn" class="data-dependent" disabled>Save Scene</button>
+        <button id="export-screenshot-btn" class="data-dependent" disabled>Export Screenshot</button>
+      </div>
+      
+      <div id="data-info"></div>
+    </div>
+    
+    <div id="visualization-container"></div>
+    
+    <div id="tooltip"></div>
+    
+    <div id="status-message"></div>
+    <div id="loading-indicator">Loading...</div>
+    <div id="errorMessage" style="display:none; position:fixed; top:0; left:0; right:0; padding:15px; background-color:#f44336; color:white; text-align:center;"></div>
+  </div>
+  
+  <script>
+    // Test data generator
+    function generateTestData() {
+      const data = [];
+      for (let i = 0; i < 100; i++) {
+        data.push({
+          x: Math.random() * 100 - 50,
+          y: Math.random() * 100 - 50,
+          z: Math.random() * 100 - 50,
+          cluster: Math.floor(Math.random() * 3),
+          value: Math.random() * 100
+        });
+      }
+      return JSON.stringify(data);
+    }
+    
+    // Generate test CSV data
+    function generateTestCSV() {
+      let csv = "x,y,z,cluster,value\n";
+      for (let i = 0; i < 50; i++) {
+        const x = Math.random() * 100 - 50;
+        const y = Math.random() * 100 - 50;
+        const z = Math.random() * 100 - 50;
+        const cluster = Math.floor(Math.random() * 3);
+        const value = Math.random() * 100;
+        csv += `${x},${y},${z},${cluster},${value}\n`;
+      }
+      return csv;
+    }
+    
+    // Add test data generation buttons
+    window.addEventListener('DOMContentLoaded', function() {
+      console.log('Adding test data buttons');
+      
+      // Create buttons container
+      const testButtonsContainer = document.createElement('div');
+      testButtonsContainer.className = 'control-group';
+      testButtonsContainer.innerHTML = '<h3>Test Utilities</h3>';
+      
+      // Add test JSON button
+      const testJsonBtn = document.createElement('button');
+      testJsonBtn.innerHTML = 'Load Test JSON Data';
+      testJsonBtn.style.backgroundColor = '#7b1fa2';
+      testJsonBtn.style.marginBottom = '5px';
+      
+      testJsonBtn.addEventListener('click', function() {
+        console.log('Generating test JSON data');
+        // Create a fake file event
+        const testData = generateTestData();
+        const blob = new Blob([testData], { type: 'application/json' });
+        const file = new File([blob], 'test-data.json', { type: 'application/json' });
+        
+        // Create a fake event
+        const event = {
+          target: {
+            files: [file]
+          }
+        };
+        
+        // Get UI controller instance and trigger handleFileInput
+        if (window.uiController) {
+          window.uiController.handleFileInput(event);
+        } else {
+          console.error('UI Controller not found!');
+          alert('UI Controller not found! Check console for errors.');
+        }
+      });
+      
+      // Add test CSV button
+      const testCsvBtn = document.createElement('button');
+      testCsvBtn.innerHTML = 'Load Test CSV Data';
+      testCsvBtn.style.backgroundColor = '#0d47a1';
+      
+      testCsvBtn.addEventListener('click', function() {
+        console.log('Generating test CSV data');
+        // Create a fake file event
+        const testData = generateTestCSV();
+        const blob = new Blob([testData], { type: 'text/csv' });
+        const file = new File([blob], 'test-data.csv', { type: 'text/csv' });
+        
+        // Create a fake event
+        const event = {
+          target: {
+            files: [file]
+          }
+        };
+        
+        // Get UI controller instance and trigger handleFileInput
+        if (window.uiController) {
+          window.uiController.handleFileInput(event);
+        } else {
+          console.error('UI Controller not found!');
+          alert('UI Controller not found! Check console for errors.');
+        }
+      });
+      
+      // Add diagnostic button
+      const diagBtn = document.createElement('button');
+      diagBtn.innerHTML = 'Run Diagnostics';
+      diagBtn.style.backgroundColor = '#c62828';
+      diagBtn.style.marginTop = '5px';
+      
+      diagBtn.addEventListener('click', function() {
+        console.group('TEST UI DIAGNOSTICS');
+        console.log('UI Controller available:', !!window.uiController);
+        console.log('UI Controller initialized:', window.uiController ? window.uiController.isInitialized : false);
+        
+        // Check all DOM elements
+        const elements = [
+          'open-file-btn',
+          'file-input',
+          'layout-select',
+          'node-size-slider',
+          'show-connections',
+          'reset-view-btn',
+          'save-scene-btn',
+          'export-screenshot-btn',
+          'visualization-container',
+          'data-info',
+          'status-message',
+          'loading-indicator',
+          'errorMessage'
+        ];
+        
+        console.log('DOM Elements:');
+        elements.forEach(id => {
+          const element = document.getElementById(id);
+          console.log(`- ${id}: ${!!element}`);
+        });
+        
+        if (window.uiController) {
+          console.log('UI Controller properties:');
+          console.log('- dataProcessor:', !!window.uiController.dataProcessor);
+          console.log('- scene3D:', !!window.uiController.scene3D);
+          console.log('- fileInput:', !!window.uiController.fileInput);
+          console.log('- electronAPI:', !!window.uiController.electronAPI);
+        }
+        
+        console.groupEnd();
+        alert('Diagnostics complete. Check console for details.');
+      });
+      
+      // Add buttons to container
+      testButtonsContainer.appendChild(testJsonBtn);
+      testButtonsContainer.appendChild(testCsvBtn);
+      testButtonsContainer.appendChild(diagBtn);
+      
+      // Add container to sidebar
+      document.getElementById('sidebar').appendChild(testButtonsContainer);
+    });
+  </script>
+</body>
+</html> 

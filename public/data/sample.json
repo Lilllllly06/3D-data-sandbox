@@ -1,0 +1,22 @@
+[
+  {"id": 1, "x": 10.5, "y": 20.3, "z": 15.2, "category": "A", "value": 95, "name": "Point 1"},
+  {"id": 2, "x": 5.2, "y": 8.7, "z": 12.1, "category": "B", "value": 87, "name": "Point 2"},
+  {"id": 3, "x": 15.7, "y": 12.3, "z": 5.5, "category": "A", "value": 56, "name": "Point 3"},
+  {"id": 4, "x": -8.3, "y": 15.4, "z": 18.9, "category": "C", "value": 72, "name": "Point 4"},
+  {"id": 5, "x": -12.1, "y": -5.3, "z": 8.8, "category": "B", "value": 45, "name": "Point 5"},
+  {"id": 6, "x": 3.5, "y": -10.2, "z": -5.7, "category": "C", "value": 63, "name": "Point 6"},
+  {"id": 7, "x": 18.3, "y": 2.5, "z": -12.4, "category": "A", "value": 89, "name": "Point 7"},
+  {"id": 8, "x": -5.5, "y": -15.7, "z": -18.1, "category": "B", "value": 34, "name": "Point 8"},
+  {"id": 9, "x": 7.6, "y": 18.9, "z": -8.3, "category": "C", "value": 77, "name": "Point 9"},
+  {"id": 10, "x": -14.2, "y": 7.8, "z": 5.1, "category": "A", "value": 51, "name": "Point 10"},
+  {"id": 11, "x": 22.4, "y": -12.7, "z": 14.8, "category": "B", "value": 68, "name": "Point 11"},
+  {"id": 12, "x": -18.9, "y": 14.3, "z": -7.2, "category": "C", "value": 42, "name": "Point 12"},
+  {"id": 13, "x": 4.8, "y": -17.5, "z": 22.3, "category": "A", "value": 83, "name": "Point 13"},
+  {"id": 14, "x": -9.3, "y": 3.7, "z": -14.9, "category": "B", "value": 59, "name": "Point 14"},
+  {"id": 15, "x": 16.7, "y": -8.1, "z": -3.4, "category": "C", "value": 75, "name": "Point 15"},
+  {"id": 16, "x": -7.5, "y": -5.8, "z": 16.2, "category": "A", "value": 47, "name": "Point 16"},
+  {"id": 17, "x": 11.2, "y": 10.9, "z": -11.7, "category": "B", "value": 91, "name": "Point 17"},
+  {"id": 18, "x": -11.8, "y": -14.2, "z": 7.3, "category": "C", "value": 38, "name": "Point 18"},
+  {"id": 19, "x": 9.6, "y": -2.8, "z": -19.5, "category": "A", "value": 64, "name": "Point 19"},
+  {"id": 20, "x": -2.4, "y": 13.7, "z": 10.1, "category": "B", "value": 73, "name": "Point 20"}
+] 

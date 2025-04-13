@@ -1,0 +1,12 @@
+[
+  {"x": 10, "y": 20, "z": 30, "category": "A", "value": 42},
+  {"x": -15, "y": 25, "z": -10, "category": "B", "value": 33},
+  {"x": 5, "y": -30, "z": 15, "category": "A", "value": 28},
+  {"x": -20, "y": -10, "z": -25, "category": "C", "value": 55},
+  {"x": 30, "y": 5, "z": 20, "category": "B", "value": 47},
+  {"x": 0, "y": 0, "z": 0, "category": "C", "value": 19},
+  {"x": 22, "y": -18, "z": 12, "category": "A", "value": 36},
+  {"x": -8, "y": 16, "z": -22, "category": "B", "value": 51},
+  {"x": 14, "y": -12, "z": 18, "category": "C", "value": 39},
+  {"x": -25, "y": 22, "z": -5, "category": "A", "value": 44}
+] 

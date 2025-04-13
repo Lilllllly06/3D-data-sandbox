@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="800" height="500" viewBox="0 0 800 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="500" fill="#121212"/>
+  
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="200" height="500" fill="#1E1E1E"/>
+  
+  <!-- Sidebar content -->
+  <text x="20" y="40" font-family="Arial" font-size="20" fill="#03A9F4">3D Data Sandbox</text>
+  <rect x="20" y="60" width="160" height="30" rx="4" fill="#1976D2"/>
+  <text x="70" y="80" font-family="Arial" font-size="14" fill="white">Import Data</text>
+  
+  <text x="20" y="120" font-family="Arial" font-size="16" fill="#03A9F4">Layout</text>
+  <rect x="20" y="130" width="160" height="30" rx="4" fill="#333333"/>
+  
+  <text x="20" y="190" font-family="Arial" font-size="16" fill="#03A9F4">Appearance</text>
+  <rect x="20" y="210" width="160" height="10" rx="5" fill="#444444"/>
+  <circle cx="50" cy="210" r="8" fill="#03A9F4"/>
+  
+  <text x="20" y="250" font-family="Arial" font-size="16" fill="#03A9F4">Save/Export</text>
+  <rect x="20" y="270" width="75" height="30" rx="4" fill="#333333"/>
+  <rect x="105" y="270" width="75" height="30" rx="4" fill="#333333"/>
+  
+  <!-- 3D Scene area -->
+  <rect x="200" y="0" width="600" height="500" fill="#121212"/>
+  
+  <!-- 3D Grid -->
+  <line x1="350" y1="400" x2="650" y2="400" stroke="#444444" stroke-width="1"/>
+  <line x1="350" y1="350" x2="650" y2="350" stroke="#333333" stroke-width="1"/>
+  <line x1="350" y1="300" x2="650" y2="300" stroke="#333333" stroke-width="1"/>
+  <line x1="350" y1="250" x2="650" y2="250" stroke="#333333" stroke-width="1"/>
+  <line x1="350" y1="200" x2="650" y2="200" stroke="#333333" stroke-width="1"/>
+  <line x1="350" y1="150" x2="650" y2="150" stroke="#333333" stroke-width="1"/>
+  <line x1="350" y1="100" x2="650" y2="100" stroke="#333333" stroke-width="1"/>
+  
+  <line x1="350" y1="100" x2="350" y2="400" stroke="#444444" stroke-width="1"/>
+  <line x1="400" y1="100" x2="400" y2="400" stroke="#333333" stroke-width="1"/>
+  <line x1="450" y1="100" x2="450" y2="400" stroke="#333333" stroke-width="1"/>
+  <line x1="500" y1="100" x2="500" y2="400" stroke="#333333" stroke-width="1"/>
+  <line x1="550" y1="100" x2="550" y2="400" stroke="#333333" stroke-width="1"/>
+  <line x1="600" y1="100" x2="600" y2="400" stroke="#333333" stroke-width="1"/>
+  <line x1="650" y1="100" x2="650" y2="400" stroke="#333333" stroke-width="1"/>
+  
+  <!-- Data points -->
+  <circle cx="400" cy="200" r="10" fill="#FF5252"/>
+  <circle cx="450" cy="300" r="12" fill="#2196F3"/>
+  <circle cx="500" cy="180" r="8" fill="#4CAF50"/>
+  <circle cx="550" cy="250" r="14" fill="#FFC107"/>
+  <circle cx="600" cy="150" r="10" fill="#9C27B0"/>
+  <circle cx="420" cy="350" r="12" fill="#FF9800"/>
+  <circle cx="480" cy="260" r="10" fill="#00BCD4"/>
+  <circle cx="520" cy="140" r="12" fill="#8BC34A"/>
+  <circle cx="580" cy="320" r="8" fill="#FF4081"/>
+  <circle cx="380" cy="170" r="10" fill="#536DFE"/>
+  
+  <!-- Connections between points -->
+  <line x1="400" y1="200" x2="450" y2="300" stroke="#444444" stroke-width="1"/>
+  <line x1="450" y1="300" x2="500" y2="180" stroke="#444444" stroke-width="1"/>
+  <line x1="500" y1="180" x2="550" y2="250" stroke="#444444" stroke-width="1"/>
+  <line x1="550" y1="250" x2="600" y2="150" stroke="#444444" stroke-width="1"/>
+  <line x1="420" y1="350" x2="450" y2="300" stroke="#444444" stroke-width="1"/>
+  <line x1="480" y1="260" x2="450" y2="300" stroke="#444444" stroke-width="1"/>
+  <line x1="480" y1="260" x2="500" y2="180" stroke="#444444" stroke-width="1"/>
+  <line x1="520" y1="140" x2="500" y2="180" stroke="#444444" stroke-width="1"/>
+  <line x1="520" y1="140" x2="600" y2="150" stroke="#444444" stroke-width="1"/>
+  <line x1="380" y1="170" x2="400" y2="200" stroke="#444444" stroke-width="1"/>
+  
+  <!-- Tooltip -->
+  <rect x="450" y="120" width="150" height="60" rx="4" fill="rgba(0,0,0,0.8)"/>
+  <text x="460" y="145" font-family="Arial" font-size="12" fill="white">Point: 42</text>
+  <text x="460" y="165" font-family="Arial" font-size="12" fill="white">Value: 87.5</text>
+  
+  <!-- Axes -->
+  <line x1="250" y1="400" x2="300" y2="400" stroke="#FF5252" stroke-width="2"/>
+  <text x="305" y="405" font-family="Arial" font-size="12" fill="#FF5252">X</text>
+  
+  <line x1="250" y1="400" x2="250" y2="350" stroke="#4CAF50" stroke-width="2"/>
+  <text x="245" y="345" font-family="Arial" font-size="12" fill="#4CAF50">Y</text>
+  
+  <line x1="250" y1="400" x2="280" y2="370" stroke="#2196F3" stroke-width="2"/>
+  <text x="285" y="370" font-family="Arial" font-size="12" fill="#2196F3">Z</text>
+</svg> 

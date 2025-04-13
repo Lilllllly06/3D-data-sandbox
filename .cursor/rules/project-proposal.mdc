@@ -1,0 +1,79 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+
+When programming, NEVER trim any of the features off for simplicity, you should always aim for the most complete and complex project. 
+
+Holographic (3D) Data Sandbox – Offline Visualization & Manipulation
+Concept Overview
+Develop a local 3D environment (like a small “holodeck” on your screen) where you can load, view, and manipulate data in a 3D space. For instance, you might place CSV data points as 3D cubes, connecting them with edges, rotating them in real-time, and letting users “walk” around the data. It’s part data viz tool, part 3D playground. All computations and storage happen locally.
+
+Why It’s Interesting
+3D Programming Mastery: Handling transformations, camera controls, and object rendering in three dimensions.
+
+Data Manipulation: You’ll need a robust approach to reading and structuring data to display it in a meaningful 3D layout.
+
+Interactive Exploration: The ability to drag points, reorganize clusters, or run local clustering algorithms in real-time is unique and memorable.
+
+Suggested Tech Stack
+Language/Engine:
+
+JavaScript: Three.js in an Electron environment for cross-platform desktop.
+
+Python: Pygame or OpenGL directly, though it’s more complex.
+
+Data Handling:
+
+Local file reading for CSV, JSON, or other structured data.
+
+Basic local “compute” functionality (e.g., run a simple k-means cluster).
+
+Scene & UI:
+
+3D camera controls (mouse drag to rotate, scroll to zoom, WASD to move, etc.).
+
+Minimal UI to import data, choose layout algorithms, color-code data by category.
+
+Core Functionalities
+Data Import: Let the user pick a local CSV/JSON. Each row becomes a node in the 3D space.
+
+Layout Algorithms:
+
+Random scatter vs. advanced algorithms (like force-directed or dimension-reduction).
+
+Filter or group data points in real-time.
+
+Interaction:
+
+Select and highlight nodes with the mouse.
+
+Display tooltips with data attributes.
+
+Possibly connect related nodes with lines or color-coded clusters.
+
+Saving Scenes:
+
+Store the arrangement so the user can reload the 3D layout.
+
+Screenshot export or a small “flythrough” animation.
+
+Expansion Ideas
+Local Analysis: Implement simple algorithms for clustering, outlier detection, or correlation lines.
+
+Customizable Visual Themes: Let users choose color palettes, 3D shapes, or background environments.
+
+VR or AR: If you want to go wild, you could add optional VR support, though that’s more advanced.
+
+How to Impress Recruiters
+Mathematical Understanding: Document how you handle 3D transformations, matrix operations, or any data-driven algorithms.
+
+Smooth Performance: Show you can handle 1,000+ points at 60 FPS.
+
+Portfolio “Wow”: 3D data manipulation always looks cool in a demo or screenshot.
