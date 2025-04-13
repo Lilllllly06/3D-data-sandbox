@@ -926,11 +926,29 @@ class UIController {
    * Triggered when the apply filter button is clicked
    */
   applyFilter() {
-    if (!this.filterColumnSelect || !this.filterValueInput) return;
-    this.currentSettings.filterColumn = this.filterColumnSelect.value;
-    this.currentSettings.filterValue = this.filterValueInput.value;
-    console.log(`Applying filter - Column: ${this.currentSettings.filterColumn}, Value: ${this.currentSettings.filterValue}`);
-    this.refreshVisualization(); // Refresh needed to apply filter
+    if (!this.isInitialized || !this.filterColumnSelect || !this.filterValueInput) return;
+
+    const filterColumn = this.filterColumnSelect.value;
+    const filterValue = this.filterValueInput.value;
+    
+    // === Log Filter Values ===
+    console.log(`UI: Apply Filter called. Column='${filterColumn}', Value='${filterValue}'`);
+    // === End Log ===
+
+    // Update current settings only if a column is selected
+    // Allow empty value to clear filter for that column
+    if (filterColumn) {
+        this.currentSettings.filterColumn = filterColumn;
+        this.currentSettings.filterValue = filterValue;
+        this.showStatus(`Filtering ${filterColumn} for \'${filterValue}\'...`);
+    } else {
+        // If column is set back to 'None' or empty, clear the filter
+        this.currentSettings.filterColumn = '';
+        this.currentSettings.filterValue = '';
+        this.showStatus('Filter cleared.');
+    }
+
+    this.refreshVisualization();
   }
 
   /**

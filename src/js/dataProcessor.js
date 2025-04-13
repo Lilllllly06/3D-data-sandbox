@@ -536,6 +536,11 @@ class DataProcessor {
           point.clusterIndex = clusters[index];
       });
       
+      // === Log first few assignments for debugging ===
+      console.log("KMeans: First 5 cluster assignments:", clusters.slice(0, 5));
+      console.log("KMeans: First centroid:", centroids[0]);
+      // === End log ===
+      
       // 4. Create visualization data
       // Generate distinct colors for clusters
       const clusterColorMap = {};
@@ -549,6 +554,13 @@ class DataProcessor {
 
       const visualizationData = pointsToCluster.map((point, index) => {
           const clusterIndex = point.clusterIndex;
+          const centroid = centroids[clusterIndex]; // Get centroid *before* checks for logging
+          
+          // === Log details for first few points ===
+          if (index < 5) { 
+              console.log(`KMeans Layout Point ${index}: clusterIndex=${clusterIndex}, centroid=`, centroid);
+          }
+          // === End log ===
           
           // === Defensive Check ===
           if (clusterIndex === undefined || clusterIndex < 0 || clusterIndex >= centroids.length) {
@@ -564,8 +576,6 @@ class DataProcessor {
               };
           }
           // === End Check ===
-          
-          const centroid = centroids[clusterIndex]; // Normalized centroid
           
           // === Defensive Check ===
           if (!Array.isArray(centroid) || centroid.length !== dimensions) {
@@ -707,6 +717,10 @@ class DataProcessor {
           }
       }
       console.log(`K-Means completed in ${iterations} iterations.`);
+      // === Log final results ===
+      console.log("KMeans Final Assignments (first 10):", assignments.slice(0, 10));
+      console.log("KMeans Final Centroids:", centroids);
+      // === End log ===
       return { clusters: assignments, centroids };
   }
 
@@ -768,7 +782,7 @@ class DataProcessor {
   createColorMap(column, dataSet = this.processedData) {
     console.log(`Creating color map for column: ${column}`);
     if (!column || !this.dataColumns.includes(column)) {
-        console.warn(`Color column \"${column}\" not found or invalid. Using default.`);
+        console.warn(`Color column "${column}" not found or invalid. Using default.`);
         column = this.dataColumns[0]; 
         if (!column) return { type: 'error', message: 'No valid columns available for coloring.' }; // Handle no columns case
     }
@@ -780,7 +794,7 @@ class DataProcessor {
       console.log(`Numeric color map range: ${stats.min} - ${stats.max}`);
       // If min and max are the same, handle potential division by zero in getColor
       if (stats.min === stats.max) {
-          console.warn(`Numeric column \"${column}\" has uniform values. Using single color.`);
+          console.warn(`Numeric column "${column}" has uniform values. Using single color.`);
           return {
               type: 'numeric',
               min: stats.min,
@@ -1091,7 +1105,7 @@ class DataProcessor {
    * @returns {Array<Array<number>>} Array of pairs [originalIndex1, originalIndex2]
    */
   calculateCorrelations(col1Name, col2Name, threshold) {
-    console.log(`DataProcessor: Calculating correlations between \"${col1Name}\" and \"${col2Name}\" with threshold ${threshold}`);
+    console.log(`DataProcessor: Calculating correlations between "${col1Name}" and "${col2Name}" with threshold ${threshold}`);
     if (!this.processedData || this.processedData.length < 2) {
       console.warn('DataProcessor: Not enough data for correlation calculation.');
       return [];
