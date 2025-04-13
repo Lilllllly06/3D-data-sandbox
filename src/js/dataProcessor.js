@@ -500,128 +500,134 @@ class DataProcessor {
    * @returns {Array} Data points arranged by clusters
    */
   createKMeansLayout(data, k, xColumn, yColumn, zColumn, colorColumn, colorMap) {
-      console.log(`Creating K-Means layout with K=${k}`);
-      
-      // === Define dimensions based on input points ===
-      let dimensions = 0;
-      if (data.length > 0) {
-          // Assuming all points have the same number of features used for clustering
-          const sampleFeatures = [parseFloat(data[0][xColumn]) || 0, parseFloat(data[0][yColumn]) || 0, parseFloat(data[0][zColumn]) || 0];
-          dimensions = sampleFeatures.length; 
-      } else {
-          console.warn("KMeans layout called with empty data.");
-          return []; // Return early if no data
-      }
-      console.log(`KMeans layout using ${dimensions} dimensions.`);
-      // === End dimensions definition ===
-      
-      // 1. Prepare data for clustering (use normalized coordinates)
-      const pointsToCluster = data.map((row) => {
-          const x = parseFloat(row[xColumn]) || 0;
-          const y = parseFloat(row[yColumn]) || 0;
-          const z = parseFloat(row[zColumn]) || 0;
-          // Normalize based on original stats for clustering stability
-          const normX = this.normalizeValue(x, this.getColumnStats(xColumn, this.processedData).min, this.getColumnStats(xColumn, this.processedData).max);
-          const normY = this.normalizeValue(y, this.getColumnStats(yColumn, this.processedData).min, this.getColumnStats(yColumn, this.processedData).max);
-          const normZ = this.normalizeValue(z, this.getColumnStats(zColumn, this.processedData).min, this.getColumnStats(zColumn, this.processedData).max);
-          return { originalRow: row, features: [normX, normY, normZ] };
-      });
+    console.log(`Creating K-Means layout with K=${k}`);
 
-      // 2. Run K-Means
-      const { clusters, centroids } = this.runKMeans(pointsToCluster.map(p => p.features), k);
-      console.log(`K-Means finished. Found ${centroids.length} centroids.`);
-      
-      // 3. Assign cluster index back to data
-      pointsToCluster.forEach((point, index) => {
-          point.clusterIndex = clusters[index];
-      });
-      
-      // === Log first few assignments for debugging ===
-      console.log("KMeans: First 5 cluster assignments:", clusters.slice(0, 5));
-      console.log("KMeans: First centroid:", centroids[0]);
-      // === End log ===
-      
-      // 4. Create visualization data
-      // Generate distinct colors for clusters
-      const clusterColorMap = {};
-      for (let i = 0; i < k; i++) {
-          clusterColorMap[i] = this.hslToHex(i / k, 0.8, 0.6);
-      }
-      
-      // Position clusters roughly based on centroid normalized positions
-      const clusterSpreadFactor = 60; // How far apart clusters appear
-      const withinClusterSpread = 15; // How spread out points are within a cluster
+    // --- Data Preparation --- 
+    if (!data || data.length === 0) {
+      console.warn("KMeans layout called with empty data.");
+      return [];
+    }
 
-      const visualizationData = pointsToCluster.map((point, index) => {
-          const clusterIndex = point.clusterIndex;
-          const centroid = centroids[clusterIndex]; // Get centroid *before* checks for logging
-          
-          // === Log details for first few points ===
-          if (index < 5) { 
-              console.log(`KMeans Layout Point ${index}: clusterIndex=${clusterIndex}, centroid=`, centroid);
-          }
-          // === End log ===
-          
-          // === Defensive Check ===
-          if (clusterIndex === undefined || clusterIndex < 0 || clusterIndex >= centroids.length) {
-              console.error(`DataProcessor: Invalid clusterIndex (${clusterIndex}) for point ${index}. Centroids count: ${centroids.length}`);
-              // Assign to a default position or skip
+    // Ensure we have stats for normalization
+    const xStats = this.getColumnStats(xColumn, this.processedData);
+    const yStats = this.getColumnStats(yColumn, this.processedData);
+    const zStats = this.getColumnStats(zColumn, this.processedData);
+    
+    // Prepare data for clustering: Use normalized X, Y, Z coordinates
+    const pointsToCluster = data.map((row, originalIndex) => {
+        const x = parseFloat(row[xColumn]) || 0;
+        const y = parseFloat(row[yColumn]) || 0;
+        const z = parseFloat(row[zColumn]) || 0;
+        // Normalize based on original stats for clustering stability
+        const normX = this.normalizeValue(x, xStats.min, xStats.max, 0, 1); // Normalize to 0-1 range
+        const normY = this.normalizeValue(y, yStats.min, yStats.max, 0, 1);
+        const normZ = this.normalizeValue(z, zStats.min, zStats.max, 0, 1);
+        return {
+          originalRow: row,
+          originalIndex: originalIndex, // Store original index from the *filtered* data array
+          features: [normX, normY, normZ] 
+        };
+    });
+    
+    const featuresForClustering = pointsToCluster.map(p => p.features);
+    if (featuresForClustering.length === 0) {
+        console.warn("No valid features extracted for K-Means clustering.");
+        return [];
+    }
+    const dimensions = featuresForClustering[0].length;
+    console.log(`KMeans layout using ${dimensions} dimensions for ${featuresForClustering.length} points.`);
+
+    // --- Run K-Means --- 
+    const { clusters, centroids } = this.runKMeans(featuresForClustering, k);
+    if (!clusters || !centroids || centroids.length === 0 || clusters.length !== featuresForClustering.length) {
+        console.error("K-Means algorithm failed to return valid clusters or centroids.");
+        // Return error state for all points
+        return data.map((row, index) => ({ 
+            id: `point-${index}-kmeans-error`,
+            position: { x: 0, y: 0, z: 0 }, 
+            originalData: row, cluster: -1, color: '#FF0000',
+            label: `Error: K-Means execution failed for point ${index}`
+        }));
+    }
+    console.log(`K-Means finished. Found ${centroids.length} centroids.`);
+
+    // Assign cluster index back to data points
+    pointsToCluster.forEach((point, index) => {
+        point.clusterIndex = clusters[index]; 
+    });
+
+    // --- Visualization Preparation --- 
+    const clusterColorMap = {};
+    for (let i = 0; i < centroids.length; i++) { // Use actual centroid count
+        clusterColorMap[i] = this.hslToHex(i / centroids.length, 0.8, 0.6);
+    }
+    
+    const clusterSpreadFactor = 50; // How far apart cluster centers are spread
+    const withinClusterSpread = 10; // How spread out points are within a cluster
+
+    const visualizationData = pointsToCluster.map((point, index) => {
+        const clusterIndex = point.clusterIndex;
+
+        // Defensive Check: Validate clusterIndex
+        if (clusterIndex === undefined || clusterIndex < 0 || clusterIndex >= centroids.length) {
+            console.error(`DataProcessor: Invalid clusterIndex (${clusterIndex}) for point index ${index}. Centroids count: ${centroids.length}`);
+            return { 
+                id: `point-${point.originalIndex}-error`,
+                position: { x: 0, y: 0, z: 0 }, 
+                originalData: point.originalRow,
+                cluster: -1, 
+                color: '#FF0000',
+                label: `Error: Invalid cluster index for point ${point.originalIndex}`
+            };
+        }
+
+        const centroid = centroids[clusterIndex]; // Centroid is in normalized space [0, 1]
+        
+        // Defensive Check: Validate centroid structure
+        if (!Array.isArray(centroid) || centroid.length !== dimensions) {
+             console.error(`DataProcessor: Invalid centroid structure for cluster ${clusterIndex}:`, centroid);
               return { 
-                  id: `point-${index}-error`,
-                  position: { x: 0, y: 0, z: 0 }, 
-                  originalData: point.originalRow,
-                  cluster: -1, 
-                  color: '#FF0000', // Red for error
-                  label: `Error: Invalid cluster index for point ${index}`
-              };
-          }
-          // === End Check ===
-          
-          // === Defensive Check ===
-          if (!Array.isArray(centroid) || centroid.length !== dimensions) {
-              console.error(`DataProcessor: Invalid centroid structure for cluster ${clusterIndex}:`, centroid);
-               return { 
-                  id: `point-${index}-error`,
-                  position: { x: 0, y: 0, z: 0 }, 
-                  originalData: point.originalRow,
-                  cluster: clusterIndex, 
-                  color: '#FF0000', // Red for error
-                  label: `Error: Invalid centroid for cluster ${clusterIndex}, point ${index}`
-              };
-          }
-          // === End Check ===
-          
-          // Base position from normalized centroid, scaled up
-          const baseX = (centroid[0] - 0.5) * clusterSpreadFactor * 2;
-          const baseY = (centroid[1] - 0.5) * clusterSpreadFactor * 2;
-          const baseZ = (centroid[2] - 0.5) * clusterSpreadFactor * 2;
-          
-          // Add random offset within the cluster
-          const offsetX = (Math.random() - 0.5) * withinClusterSpread;
-          const offsetY = (Math.random() - 0.5) * withinClusterSpread;
-          const offsetZ = (Math.random() - 0.5) * withinClusterSpread;
-          
-          const finalX = baseX + offsetX;
-          const finalY = baseY + offsetY;
-          const finalZ = baseZ + offsetZ;
-          
-          // Use cluster color for the node
-          const color = clusterColorMap[clusterIndex];
-          // Create label showing cluster and original color value
-          const label = this.createLabel(point.originalRow, index, [colorColumn], `Cluster ${clusterIndex}`);
-          
-          return {
-              id: `point-${index}`,
-              position: { x: finalX, y: finalY, z: finalZ },
-              originalData: point.originalRow,
-              cluster: clusterIndex, // Add cluster info
-              color: color,
-              label: label
-          };
-      });
-      
-      console.log(`K-Means layout created with ${visualizationData.length} points.`);
-      return visualizationData;
+                 id: `point-${point.originalIndex}-error`,
+                 position: { x: 0, y: 0, z: 0 }, 
+                 originalData: point.originalRow,
+                 cluster: clusterIndex, 
+                 color: '#FF0000',
+                 label: `Error: Invalid centroid for cluster ${clusterIndex}, point ${point.originalIndex}`
+             };
+        }
+
+        // *** Corrected Positioning Logic ***
+        // Map the normalized centroid position to the visualization space (e.g., -50 to 50)
+        const clusterCenterX = this.normalizeValue(centroid[0], 0, 1, -clusterSpreadFactor, clusterSpreadFactor);
+        const clusterCenterY = this.normalizeValue(centroid[1], 0, 1, -clusterSpreadFactor, clusterSpreadFactor);
+        const clusterCenterZ = this.normalizeValue(centroid[2], 0, 1, -clusterSpreadFactor, clusterSpreadFactor);
+        
+        // Add random offset within the cluster for visual separation
+        const offsetX = (Math.random() - 0.5) * withinClusterSpread;
+        const offsetY = (Math.random() - 0.5) * withinClusterSpread;
+        const offsetZ = (Math.random() - 0.5) * withinClusterSpread;
+        
+        const finalX = clusterCenterX + offsetX;
+        const finalY = clusterCenterY + offsetY;
+        const finalZ = clusterCenterZ + offsetZ;
+        
+        const color = clusterColorMap[clusterIndex];
+        const label = this.createLabel(point.originalRow, point.originalIndex, [colorColumn], `Cluster ${clusterIndex}`);
+        
+        return {
+            id: `point-${point.originalIndex}`,
+            position: { x: finalX, y: finalY, z: finalZ },
+            originalData: point.originalRow,
+            cluster: clusterIndex, 
+            color: color,
+            label: label
+        };
+    });
+    
+    // Filter out any nulls created by errors
+    const validVisualizationData = visualizationData.filter(p => p !== null);
+    console.log(`K-Means layout created with ${validVisualizationData.length} valid points.`);
+    return validVisualizationData;
   }
   
   /**
