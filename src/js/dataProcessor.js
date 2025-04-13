@@ -289,23 +289,43 @@ class DataProcessor {
 
     let filteredData = this.processedData;
     // Apply filtering if specified
-    if (options.filterColumn && options.filterValue) {
-      console.log(`Applying filter: Column='${options.filterColumn}', Value='${options.filterValue}'`);
+    if (options.filterColumn && options.filterValue !== undefined && options.filterValue !== null && options.filterValue !== '') {
       const filterCol = options.filterColumn;
-      const filterValLower = options.filterValue.toLowerCase();
+      const filterVal = options.filterValue;
+      console.log(`Applying EXACT filter: Column='${filterCol}', Value='${filterVal}' (Type: ${typeof filterVal})`);
+
+      const isNumericFilter = this.metaData.numericColumns.includes(filterCol);
+      let filterValNum = NaN;
+      if (isNumericFilter) {
+          filterValNum = parseFloat(filterVal);
+          console.log(`Filter is numeric. Parsed value: ${filterValNum}`);
+      }
+
       filteredData = this.processedData.filter(row => {
         const rowValue = row[filterCol];
-        return rowValue !== null && rowValue !== undefined && 
-               String(rowValue).toLowerCase().includes(filterValLower);
+        
+        // Handle null/undefined in data
+        if (rowValue === null || rowValue === undefined) return false;
+
+        if (isNumericFilter) {
+          // Exact numeric comparison
+          const rowValueNum = parseFloat(rowValue);
+          return !isNaN(rowValueNum) && rowValueNum === filterValNum;
+        } else {
+          // Exact string comparison (case-sensitive)
+          return String(rowValue) === String(filterVal);
+        }
       });
-      console.log(`${filteredData.length} rows remaining after filtering.`);
+      
+      console.log(`${filteredData.length} rows remaining after EXACT filtering.`);
       if (filteredData.length === 0) {
-        console.warn('Filtering resulted in zero data points.');
+        console.warn('Exact filtering resulted in zero data points.');
         // Return empty array, UI should handle this message
-        return [];
+        // No need to return here if we want to show an empty scene
+        // return [];
       }
     } else {
-      console.log('No filter applied.');
+      console.log('No filter applied or filter value is empty.');
     }
 
     console.log(`Preparing visualization data using ${layout} layout for ${filteredData.length} items.`);
@@ -452,11 +472,6 @@ class DataProcessor {
     }).filter(point => point !== null); // Filter out any nulls if error occurred
     
     console.log(`Scatter layout created with ${visualizationData.length} points`);
-    // === Log first point for inspection ===
-    if (visualizationData.length > 0) {
-        console.log("DataProcessor: First scatter point data:", JSON.stringify(visualizationData[0]));
-    }
-    // === End Log ===
     return visualizationData;
   }
 
