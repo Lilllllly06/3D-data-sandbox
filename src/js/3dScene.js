@@ -557,76 +557,56 @@ class Scene3D {
     this.connections = []; // Reset internal array
     console.log('Cleared previous connections.');
     
-    let connectionsCreated = 0;
-    if (!this.dataPoints || this.dataPoints.length < 2) {
-        console.log('Not enough data points to create connections.');
+    const nodes = this.nodesGroup.children;
+    if (nodes.length < 2) {
+        console.log("Scene3D: Not enough nodes to create connections (need >= 2).");
         return;
     }
 
-    // Only create connections for nearby points or points in the same cluster
-    for (let i = 0; i < this.dataPoints.length; i++) {
-      const pointA = this.dataPoints[i];
-      
-      // For points in the same cluster, or nearby points
-      for (let j = i + 1; j < this.dataPoints.length; j++) {
-        const pointB = this.dataPoints[j];
-        
-        // Check if points should be connected (same cluster or close together)
-        const sameCluster = 
-          pointA.cluster !== undefined && 
-          pointB.cluster !== undefined && 
-          pointA.cluster === pointB.cluster;
-          
-        // Calculate distance between points
-        const distance = Math.sqrt(
-          Math.pow(pointA.position.x - pointB.position.x, 2) +
-          Math.pow(pointA.position.y - pointB.position.y, 2) +
-          Math.pow(pointA.position.z - pointB.position.z, 2)
-        );
-        
-        // Connect if in same cluster or close enough
-        // Define a threshold for closeness
-        const distanceThreshold = 15; // Adjust as needed
-        if (sameCluster || distance < distanceThreshold) {
-          // console.log(`Creating connection between point ${i} and ${j}. Reason: ${sameCluster ? 'Same Cluster' : 'Distance < ' + distanceThreshold}`);
-          this.createConnection(pointA, pointB);
-          connectionsCreated++;
-        }
-      }
-    }
-    console.log(`Scene3D: createConnections finished. ${connectionsCreated} connections created internally.`);
-  }
-
-  /**
-   * Create a connection between two points
-   * @param {Object} pointA - First data point
-   * @param {Object} pointB - Second data point
-   */
-  createConnection(pointA, pointB) {
-    // Create line geometry
-    const geometry = new THREE.BufferGeometry();
-    const vertices = new Float32Array([
-      pointA.position.x, pointA.position.y, pointA.position.z,
-      pointB.position.x, pointB.position.y, pointB.position.z
-    ]);
-    
-    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-    
-    // Create line material
-    const material = new THREE.LineBasicMaterial({
-      color: pointA.cluster !== undefined ? pointA.color : 0x888888,
-      transparent: true,
-      opacity: 0.5, // Slightly reduced opacity
-      linewidth: 1 // Note: linewidth > 1 requires LineMaterial from examples/jsm/lines
+    console.log(`Scene3D: Calculating nearest neighbors for ${nodes.length} nodes...`);
+    const connectionMaterial = new THREE.LineBasicMaterial({
+        color: new THREE.Color(this.config.connectionColor),
+        linewidth: 1.5, // Note: linewidth > 1 may not work on all platforms/drivers
+        transparent: true,
+        opacity: this.config.connectionOpacity
     });
     
-    // Create line
-    const line = new THREE.Line(geometry, material);
-    
-    // Add to group
-    this.connectionsGroup.add(line);
-    this.connections.push(line);
-    // console.log('Added line to connectionsGroup');
+    let connectionsAdded = 0;
+
+    // O(n^2) approach - find nearest neighbor for each node
+    for (let i = 0; i < nodes.length; i++) {
+        let nearestNodeIndex = -1;
+        let minDistanceSq = Infinity;
+        const nodeA = nodes[i];
+
+        for (let j = 0; j < nodes.length; j++) {
+            if (i === j) continue; // Skip self
+            const nodeB = nodes[j];
+            const distanceSq = nodeA.position.distanceToSquared(nodeB.position);
+
+            if (distanceSq < minDistanceSq) {
+                minDistanceSq = distanceSq;
+                nearestNodeIndex = j;
+            }
+        }
+
+        if (nearestNodeIndex !== -1) {
+            const nearestNode = nodes[nearestNodeIndex];
+            const points = [nodeA.position.clone(), nearestNode.position.clone()]; // Clone positions
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, connectionMaterial.clone()); // Clone material
+            this.connectionsGroup.add(line);
+            this.connections.push(line); // Store for potential later use/disposal
+            connectionsAdded++;
+            // console.log(`Scene3D: Added connection between node ${i} and ${nearestNodeIndex}, distance: ${Math.sqrt(minDistanceSq).toFixed(2)}`);
+        } else {
+            console.log(`Scene3D: No nearest neighbor found for node ${i}`);
+        }
+    }
+    console.log(`Scene3D: Finished creating connections. ${connectionsAdded} lines added to connectionsGroup.`);
+    // Ensure the group visibility is set correctly after adding
+    this.connectionsGroup.visible = this.config.showConnections;
+    console.log(`Scene3D: connectionsGroup visibility is now ${this.connectionsGroup.visible}`);
   }
 
   /**
@@ -684,16 +664,21 @@ class Scene3D {
 
   /**
    * Toggle connections between nodes
-   * @param {boolean} show - Whether to show connections
+   * @param {boolean} visible - Whether to show connections
    */
-  toggleConnections(show) {
-    this.config.showConnections = show;
-    console.log(`Scene3D: Setting connectionsGroup visibility to ${show}`);
-    
-    // Directly toggle the visibility of the group
-    this.connectionsGroup.visible = show;
-
-    // No need to recreate here, visualizeData populates the group initially.
+  toggleConnections(visible) {
+    console.log(`Scene3D: toggleConnections called with visibility: ${visible}`);
+    if (typeof visible !== 'boolean') {
+        console.warn(`Scene3D: toggleConnections received non-boolean value: ${visible}`);
+        visible = !!visible; // Attempt to coerce to boolean
+    }
+    this.config.showConnections = visible; // Update config state
+    if (this.connectionsGroup) {
+        this.connectionsGroup.visible = visible;
+        console.log(`Scene3D: connectionsGroup.visible set to ${this.connectionsGroup.visible}`);
+    } else {
+        console.error('Scene3D: connectionsGroup not found when toggling visibility!');
+    }
   }
 
   /**
@@ -845,53 +830,62 @@ class Scene3D {
    * @param {Array<{point1Index: number, point2Index: number, correlationValue: number}>} correlationData
    */
   drawCorrelationLines(correlationData = []) {
-    console.log(`Drawing ${correlationData.length} correlation lines...`);
+    console.log(`Scene3D: Drawing ${correlationData.length} correlation lines...`);
     this.clearCorrelationLines(); // Clear existing lines first
 
     if (correlationData.length === 0) {
-      console.log('No correlation data to draw.');
+      console.log('Scene3D: No correlation data to draw.');
       return;
     }
     
-    // Create a map for quick node lookup by originalIndex
     const nodesMap = new Map();
     this.nodesGroup.children.forEach(node => {
-        if (node.userData && typeof node.userData.originalIndex === 'number') {
-            nodesMap.set(node.userData.originalIndex, node);
+        // Ensure we are using the correct property for the original index
+        const originalIndex = node.userData.originalIndex;
+        if (node.userData && typeof originalIndex === 'number') {
+            nodesMap.set(originalIndex, node);
+        } else {
+            // Log if a node is missing the expected index
+            console.warn('Scene3D: Node found without valid originalIndex in userData:', node.userData);
         }
     });
+    console.log(`Scene3D: Created nodesMap with ${nodesMap.size} entries.`);
 
     const lineMaterialStrongPositive = new THREE.LineBasicMaterial({
       color: 0x00ff00, // Green for strong positive correlation
-      linewidth: 1.5, // Thicker line
+      linewidth: 1.5, 
       transparent: true,
       opacity: 0.7
     });
     const lineMaterialStrongNegative = new THREE.LineBasicMaterial({
       color: 0xff00ff, // Magenta for strong negative correlation
-      linewidth: 1.5, // Thicker line
+      linewidth: 1.5, 
       transparent: true,
       opacity: 0.7
     });
+    
+    let linesAdded = 0;
 
-    correlationData.forEach(corr => {
+    correlationData.forEach((corr, idx) => {
       const node1 = nodesMap.get(corr.point1Index);
       const node2 = nodesMap.get(corr.point2Index);
 
       if (node1 && node2) {
-        const points = [node1.position, node2.position];
+        const points = [node1.position.clone(), node2.position.clone()];
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        
-        // Choose material based on correlation strength/sign (example)
-        const material = corr.correlationValue > 0 ? lineMaterialStrongPositive : lineMaterialStrongNegative;
-        
-        const line = new THREE.Line(geometry, material.clone()); // Clone material if changing properties later
+        const material = corr.correlationValue > 0 ? lineMaterialStrongPositive.clone() : lineMaterialStrongNegative.clone();
+        const line = new THREE.Line(geometry, material);
         this.analysisGroup.add(line);
+        linesAdded++;
+        // console.log(`Scene3D: Added correlation line ${idx} between index ${corr.point1Index} and ${corr.point2Index}`);
       } else {
-        console.warn(`Could not find nodes for correlation pair: ${corr.point1Index} <-> ${corr.point2Index}`);
+        console.warn(`Scene3D: Could not find nodes for correlation pair indices: ${corr.point1Index} <-> ${corr.point2Index}`);
       }
     });
-    console.log(`Added ${this.analysisGroup.children.length} correlation lines to analysisGroup.`);
+    console.log(`Scene3D: Added ${linesAdded} correlation lines to analysisGroup.`);
+    if (linesAdded === 0 && correlationData.length > 0) {
+        console.warn("Scene3D: Correlation data was provided, but no lines were added (check nodesMap and indices).");
+    }
   }
 
   /**

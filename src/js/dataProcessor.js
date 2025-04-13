@@ -1028,62 +1028,79 @@ class DataProcessor {
    * @returns {Array<Array<number>>} Array of pairs [originalIndex1, originalIndex2]
    */
   calculateCorrelations(col1Name, col2Name, threshold) {
-      if (!this.processedData) return [];
-      console.log(`Finding correlations >= ${threshold} between ${col1Name} and ${col2Name}`);
-      
-      // We need a way to map back to the *currently displayed* nodes.
-      // The UI controller or Scene3D should probably pass the *current* data points.
-      // For now, let's assume we operate on the full dataset and UI/Scene handles mapping.
-      
-      // NOTE: Calculating pairwise correlation between all points is computationally expensive (O(n^2)).
-      // A more typical approach is to show the overall correlation coefficient or maybe
-      // draw lines between points that are *spatially close* AND have similar values in correlated columns.
-      // Let's implement a simple pairwise value similarity check for demonstration.
+    console.log(`DataProcessor: Calculating correlations between \"${col1Name}\" and \"${col2Name}\" with threshold ${threshold}`);
+    if (!this.processedData || this.processedData.length < 2) {
+      console.warn('DataProcessor: Not enough data for correlation calculation.');
+      return [];
+    }
+    
+    // Use current visualization data for indices if available, or fall back to processedData
+    // Note: This assumes the visualization data corresponds 1:1 with processedData indices
+    const dataToUse = this.currentVisualizationData || this.processedData;
+    if (!dataToUse || dataToUse.length === 0) {
+        console.warn('DataProcessor: No data available (processed or visualized) for correlation.');
+        return [];
+    }
+    
+    const column1 = dataToUse.map(row => parseFloat(row.originalData?.[col1Name] ?? row[col1Name])).filter(v => !isNaN(v));
+    const column2 = dataToUse.map(row => parseFloat(row.originalData?.[col2Name] ?? row[col2Name])).filter(v => !isNaN(v));
 
-      const correlatedPairs = [];
-      const data = this.processedData; // Use original data for now
-      const n = data.length;
-      
-      const values1 = data.map(row => parseFloat(row[col1Name])).map(v => isNaN(v) ? null : v);
-      const values2 = data.map(row => parseFloat(row[col2Name])).map(v => isNaN(v) ? null : v);
-      
-      const stats1 = this.getColumnStats(col1Name);
-      const stats2 = this.getColumnStats(col2Name);
+    if (column1.length !== column2.length || column1.length === 0) {
+      console.warn('DataProcessor: Mismatched or empty numeric data for correlation columns.');
+      return [];
+    }
 
-      if (stats1.max === stats1.min || stats2.max === stats2.min) {
-          console.warn('One or both correlation columns have constant values.');
-          return [];
-      }
+    // Basic Pearson correlation calculation (replace with a library if complex stats needed)
+    let sumXY = 0, sumX = 0, sumY = 0, sumX2 = 0, sumY2 = 0;
+    const n = column1.length;
+    for (let i = 0; i < n; i++) {
+      sumX += column1[i];
+      sumY += column2[i];
+      sumXY += column1[i] * column2[i];
+      sumX2 += column1[i] * column1[i];
+      sumY2 += column2[i] * column2[i];
+    }
+    
+    const numerator = n * sumXY - sumX * sumY;
+    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+    
+    if (denominator === 0) {
+        console.log('DataProcessor: Correlation denominator is zero, cannot calculate.');
+        return []; // Avoid division by zero
+    }
+    
+    const correlation = numerator / denominator;
+    console.log(`DataProcessor: Overall Pearson correlation between ${col1Name} and ${col2Name}: ${correlation.toFixed(4)}`);
 
-      // Simple approach: Link points if their *normalized* values in both columns are close
-      const similarityThreshold = (1 - threshold) * 0.5; // Adjust this heuristic
+    // For visualization, we need pairs of points with high correlation.
+    // A simple approach: Return pairs if the overall correlation is high.
+    // A more complex approach: Calculate pairwise correlations (computationally expensive).
+    // Let's stick to the overall correlation threshold for now.
+    const correlationPairs = [];
+    if (Math.abs(correlation) >= threshold) {
+        console.log(`DataProcessor: Overall correlation ${correlation.toFixed(4)} meets threshold ${threshold}. Creating lines between all points (simplification).`);
+        // This is a simplification: Draw lines between *all* points if overall correlation is high
+        // A better approach might involve local correlation or other metrics.
+        // For now, let's just link the first N points as an example of returning pairs.
+        const maxLines = Math.min(dataToUse.length, 50); // Limit lines for performance
+        for (let i = 0; i < maxLines; i++) {
+            for (let j = i + 1; j < maxLines; j++) {
+                // Need original indices. Assuming dataToUse items have an 'originalIndex' or similar
+                const index1 = dataToUse[i].originalIndex ?? i; // Fallback to loop index
+                const index2 = dataToUse[j].originalIndex ?? j; // Fallback to loop index
+                 correlationPairs.push({ 
+                    point1Index: index1, 
+                    point2Index: index2, 
+                    correlationValue: correlation // Use overall correlation
+                 });
+            }
+        }
+        console.log(`DataProcessor: Generated ${correlationPairs.length} example correlation pairs based on overall high correlation.`);
+    } else {
+        console.log(`DataProcessor: Overall correlation ${correlation.toFixed(4)} does not meet threshold ${threshold}. No lines generated.`);
+    }
 
-      for (let i = 0; i < n; i++) {
-          if (values1[i] === null || values2[i] === null) continue;
-          const normVal1_i = this.normalizeValue(values1[i], stats1.min, stats1.max);
-          const normVal2_i = this.normalizeValue(values2[i], stats2.min, stats2.max);
-
-          for (let j = i + 1; j < n; j++) {
-              if (values1[j] === null || values2[j] === null) continue;
-              
-              const normVal1_j = this.normalizeValue(values1[j], stats1.min, stats1.max);
-              const normVal2_j = this.normalizeValue(values2[j], stats2.min, stats2.max);
-              
-              // Check if points are similar in *both* normalized dimensions
-              const diff1 = Math.abs(normVal1_i - normVal1_j);
-              const diff2 = Math.abs(normVal2_i - normVal2_j);
-              
-              if (diff1 < similarityThreshold && diff2 < similarityThreshold) {
-                  // Need original indices. Add _index during processing if not present.
-                  const index1 = data[i]._index !== undefined ? data[i]._index : i;
-                  const index2 = data[j]._index !== undefined ? data[j]._index : j;
-                  correlatedPairs.push([index1, index2]);
-              }
-          }
-      }
-
-      console.log(`Found ${correlatedPairs.length} potentially correlated pairs based on value similarity.`);
-      return correlatedPairs; 
+    return correlationPairs;
   }
 }
 

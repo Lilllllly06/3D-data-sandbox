@@ -985,25 +985,24 @@ class UIController {
       this.showLoading(true);
       this.showStatus('Detecting outliers...');
       try {
-        // Assuming detectOutliers returns { outlierIndices: [], nonOutlierIndices: [] }
         const outlierData = this.dataProcessor.detectOutliers(this.currentSettings.outlierThreshold || 1.5);
-        // Call the specific highlight method in Scene3D
-        this.scene3D.highlightOutliers(outlierData.outlierIndices);
+        // Call the corrected method names in Scene3D
+        this.scene3D.highlightNodes(outlierData.outlierIndices, outlierData.nonOutlierIndices); // Use highlightNodes
         this.detectOutliersBtn.textContent = 'Clear Outlier Highlights';
-        this.detectOutliersBtn.classList.add('active'); // Add active state styling
+        this.detectOutliersBtn.classList.add('active');
         this.showStatus(`Highlighted ${outlierData.outlierIndices.length} potential outliers.`);
       } catch (error) {
         console.error('Outlier detection error:', error);
         this.showError('Failed to detect outliers: ' + error.message);
-        this.currentSettings.highlightOutliers = false; // Revert state on error
+        this.currentSettings.highlightOutliers = false; 
         this.detectOutliersBtn.classList.remove('active');
       } finally {
         this.showLoading(false);
       }
     } else {
       console.log('Clearing outlier highlights.');
-      // Call the specific clear method in Scene3D
-      this.scene3D.clearOutlierHighlights();
+      // Call the corrected method name in Scene3D
+      this.scene3D.clearHighlights(); // Use clearHighlights
       this.detectOutliersBtn.textContent = 'Highlight Outliers';
       this.detectOutliersBtn.classList.remove('active');
       this.showStatus('Outlier highlights cleared.');
