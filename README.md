@@ -1,9 +1,14 @@
 <<<<<<< HEAD
 # 3D Data Sandbox
 
-A powerful desktop application for visualizing and manipulating data in 3D space. Import CSV or JSON data files and explore them in a fully interactive 3D environment.
+A desktop application for visualizing and manipulating data in 3D space. Import CSV or JSON data files and explore them in a fully interactive 3D environment.
 
-![3D Data Sandbox](public/screenshot.svg)
+## 🎬 Demo
+
+<video width="100%" controls>
+  <source src="https://github.com/Lilllllly06/3D-data-sandbox/issues/1#issuecomment-2799887778" type="video/webm">
+  Your browser does not support the video tag.
+</video>
 
 ## Features
 
