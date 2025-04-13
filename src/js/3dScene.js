@@ -1,8 +1,8 @@
 /**
  * 3D Scene - Handles the Three.js scene setup and management
  */
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+// import * as THREE from 'three';
+// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 // Default configuration
 const DEFAULT_CONFIG = {
@@ -152,7 +152,7 @@ class Scene3D {
    */
   setupControls() {
     // Create orbit controls for mouse interaction
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.1;
     this.controls.rotateSpeed = 0.7;
