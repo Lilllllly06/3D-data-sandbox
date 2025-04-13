@@ -4,7 +4,7 @@ A desktop application for visualizing and manipulating data in 3D space. Import 
 
 ## 🎬 Demo
 
-[![3D Data Sandbox Demo](thumbnail.png)](https://lilllly06.github.io/3D-data-sandbox/3D-data-box-demo.webm)
+[![3D Data Sandbox Demo](thumbnail.png)](https://lilllly06.github.io/3D-data-sandbox/3D-data-box-demo.mp4)
 
 > Click the image above to watch a short video demo of the application in action.
 
