@@ -591,22 +591,13 @@ class UIController {
    * Toggle connections between nodes
    */
   toggleConnections() {
-    try {
-      if (!this.showConnectionsCheckbox) return;
-      
-      const showConnections = this.showConnectionsCheckbox.checked;
-      console.log('Toggle connections:', showConnections);
-      
-      this.currentSettings.showConnections = showConnections;
-      
-      // Update connections in 3D scene
-      this.scene3D.toggleConnections(showConnections);
-      
-      this.showStatus(`Connections ${showConnections ? 'shown' : 'hidden'}`);
-    } catch (error) {
-      console.error('Toggle connections error:', error);
-      this.showError('Failed to toggle connections: ' + error.message);
-    }
+    if (!this.isInitialized || !this.scene3D || !this.showConnectionsCheckbox) return;
+    
+    const isVisible = this.showConnectionsCheckbox.checked;
+    this.currentSettings.showConnections = isVisible;
+    console.log(`UI: Toggling connections visibility to: ${isVisible}`);
+    this.scene3D.toggleConnections(isVisible);
+    this.showStatus(isVisible ? 'Showing connections' : 'Hiding connections');
   }
   
   /**
@@ -985,48 +976,60 @@ class UIController {
   // --- New Analysis Methods --- 
   
   toggleOutlierDetection() {
-    if (!this.dataProcessor || !this.scene3D) return;
+    if (!this.dataProcessor || !this.scene3D || !this.detectOutliersBtn) return;
     this.currentSettings.highlightOutliers = !this.currentSettings.highlightOutliers;
-    console.log('Toggling outlier highlighting:', this.currentSettings.highlightOutliers);
+    const highlight = this.currentSettings.highlightOutliers;
+    console.log('Toggling outlier highlighting:', highlight);
     
-    if (this.currentSettings.highlightOutliers) {
+    if (highlight) {
       this.showLoading(true);
       this.showStatus('Detecting outliers...');
       try {
-        const outlierData = this.dataProcessor.detectOutliers();
-        this.scene3D.highlightNodes(outlierData.outlierIndices, outlierData.nonOutlierIndices);
-        if (this.detectOutliersBtn) this.detectOutliersBtn.textContent = 'Clear Outlier Highlights';
+        // Assuming detectOutliers returns { outlierIndices: [], nonOutlierIndices: [] }
+        const outlierData = this.dataProcessor.detectOutliers(this.currentSettings.outlierThreshold || 1.5);
+        // Call the specific highlight method in Scene3D
+        this.scene3D.highlightOutliers(outlierData.outlierIndices);
+        this.detectOutliersBtn.textContent = 'Clear Outlier Highlights';
+        this.detectOutliersBtn.classList.add('active'); // Add active state styling
         this.showStatus(`Highlighted ${outlierData.outlierIndices.length} potential outliers.`);
       } catch (error) {
         console.error('Outlier detection error:', error);
         this.showError('Failed to detect outliers: ' + error.message);
         this.currentSettings.highlightOutliers = false; // Revert state on error
+        this.detectOutliersBtn.classList.remove('active');
       } finally {
         this.showLoading(false);
       }
     } else {
       console.log('Clearing outlier highlights.');
-      this.scene3D.clearHighlights();
-      if (this.detectOutliersBtn) this.detectOutliersBtn.textContent = 'Highlight Outliers';
+      // Call the specific clear method in Scene3D
+      this.scene3D.clearOutlierHighlights();
+      this.detectOutliersBtn.textContent = 'Highlight Outliers';
+      this.detectOutliersBtn.classList.remove('active');
       this.showStatus('Outlier highlights cleared.');
     }
   }
   
   toggleCorrelationLines() {
+    if (!this.showCorrelationBtn) return;
     this.currentSettings.showCorrelationLines = !this.currentSettings.showCorrelationLines;
-    console.log('Toggling correlation lines:', this.currentSettings.showCorrelationLines);
+    const show = this.currentSettings.showCorrelationLines;
+    console.log('Toggling correlation lines:', show);
 
-    if (this.currentSettings.showCorrelationLines) {
+    if (show) {
         if (this.updateCorrelationLines()) { // Returns false if setup fails
-            if (this.showCorrelationBtn) this.showCorrelationBtn.textContent = 'Hide Correlation Lines';
+            this.showCorrelationBtn.textContent = 'Hide Correlation Lines';
+            this.showCorrelationBtn.classList.add('active');
         } else {
             // Revert state if update failed (e.g., columns not selected)
             this.currentSettings.showCorrelationLines = false;
+            this.showCorrelationBtn.classList.remove('active');
         }
     } else {
         console.log('Clearing correlation lines.');
-        if(this.scene3D) this.scene3D.clearCorrelationLines();
-        if (this.showCorrelationBtn) this.showCorrelationBtn.textContent = 'Show Correlation Lines';
+        if(this.scene3D) this.scene3D.clearCorrelationLines(); // Call Scene3D method
+        this.showCorrelationBtn.textContent = 'Show Correlation Lines';
+        this.showCorrelationBtn.classList.remove('active');
         this.showStatus('Correlation lines hidden.');
     }
   }
@@ -1058,17 +1061,21 @@ class UIController {
     this.showLoading(true);
     this.showStatus(`Calculating correlations between ${col1} and ${col2}...`);
     try {
+        // Assuming calculateCorrelations returns an array of { point1Index, point2Index, correlationValue }
         const correlationData = this.dataProcessor.calculateCorrelations(col1, col2, threshold);
-        if (correlationData) {
-            this.scene3D.drawCorrelationLines(correlationData);
-            this.showStatus(`Showing ${correlationData.length} correlation lines (Threshold: ${threshold}).`);
+        if (correlationData && correlationData.length > 0) {
+            this.scene3D.drawCorrelationLines(correlationData); // Call Scene3D method
+            this.showStatus(`Showing ${correlationData.length} correlation lines (Threshold: ${threshold.toFixed(2)}).`);
             return true; // Success
         } else {
-            throw new Error('Correlation calculation returned no data.');
+            this.scene3D.clearCorrelationLines(); // Clear any existing lines if none found now
+            this.showStatus(`No significant correlations found between ${col1} and ${col2} above threshold ${threshold.toFixed(2)}.`);
+            return true; // Technically success, just nothing to show
         }
     } catch (error) {
         console.error('Correlation calculation/drawing error:', error);
         this.showError('Failed to show correlations: ' + error.message);
+        this.scene3D.clearCorrelationLines(); // Clear lines on error
         return false; // Failure
     } finally {
         this.showLoading(false);

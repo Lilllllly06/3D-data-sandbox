@@ -1,8 +1,26 @@
 /**
  * 3D Scene - Handles the Three.js scene setup and management
  */
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+// Default configuration
+const DEFAULT_CONFIG = {
+  nodeShape: 'cube',
+  nodeSize: 1,
+  showConnections: false,
+  backgroundColor: 0x121212,
+  highlightColor: 0xffaa00,
+  outlierHighlightColor: 0xff0000,
+  connectionColor: 0x888888,
+  connectionOpacity: 0.5,
+  nodeGeometryType: 'Box',
+  cameraPosition: { x: 100, y: 100, z: 100 },
+  cameraTarget: { x: 0, y: 0, z: 0 }
+};
+
 class Scene3D {
-  constructor(containerId) {
+  constructor(containerId, config = {}) {
     console.log(`Initializing Scene3D with container: ${containerId}`);
     
     try {
@@ -24,21 +42,14 @@ class Scene3D {
         throw new Error(`Container with id '${containerId}' not found`);
       }
       
-      // Scene configuration
-      this.config = {
-        nodeShape: 'cube',
-        nodeSize: 1,
-        showConnections: false,
-        backgroundColor: 0x121212,
-        highlightColor: 0xffaa00,
-        cameraPosition: { x: 100, y: 100, z: 100 },
-        cameraTarget: { x: 0, y: 0, z: 0 }
-      };
+      // Merge default configuration with provided configuration
+      this.config = { ...DEFAULT_CONFIG, ...config };
 
       // Scene data
       this.dataPoints = [];
       this.nodes = [];
       this.connections = [];
+      this.outlierNodes = new Set();
       this.selectedNode = null;
 
       // Set up scene
@@ -141,7 +152,7 @@ class Scene3D {
    */
   setupControls() {
     // Create orbit controls for mouse interaction
-    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.1;
     this.controls.rotateSpeed = 0.7;
@@ -830,57 +841,79 @@ class Scene3D {
   }
 
   /**
-   * Draw lines between nodes based on correlation data.
-   * @param {Array<Array<number>>} correlationPairs - Array of [originalIndex1, originalIndex2] pairs.
+   * Draws lines representing correlations between nodes.
+   * @param {Array<{point1Index: number, point2Index: number, correlationValue: number}>} correlationData
    */
-  drawCorrelationLines(correlationPairs = []) {
-    console.log(`Drawing ${correlationPairs.length} correlation lines.`);
-    this.clearCorrelationLines(); // Clear previous lines
+  drawCorrelationLines(correlationData = []) {
+    console.log(`Drawing ${correlationData.length} correlation lines...`);
+    this.clearCorrelationLines(); // Clear existing lines first
+
+    if (correlationData.length === 0) {
+      console.log('No correlation data to draw.');
+      return;
+    }
     
-    if (correlationPairs.length === 0) return;
-
-    // Create a map from original index to the current node object for quick lookup
-    const nodeMap = new Map();
-    this.nodes.forEach(node => {
-      if (node.userData.index !== undefined) {
-        nodeMap.set(node.userData.index, node);
-      }
+    // Create a map for quick node lookup by originalIndex
+    const nodesMap = new Map();
+    this.nodesGroup.children.forEach(node => {
+        if (node.userData && typeof node.userData.originalIndex === 'number') {
+            nodesMap.set(node.userData.originalIndex, node);
+        }
     });
 
-    const material = new THREE.LineBasicMaterial({
-      color: 0xffeb3b, // Yellow for correlation
-      linewidth: 2, // Might require LineMaterial/LineGeometry2 for > 1px width
+    const lineMaterialStrongPositive = new THREE.LineBasicMaterial({
+      color: 0x00ff00, // Green for strong positive correlation
+      linewidth: 1.5, // Thicker line
       transparent: true,
-      opacity: 0.8
+      opacity: 0.7
+    });
+    const lineMaterialStrongNegative = new THREE.LineBasicMaterial({
+      color: 0xff00ff, // Magenta for strong negative correlation
+      linewidth: 1.5, // Thicker line
+      transparent: true,
+      opacity: 0.7
     });
 
-    correlationPairs.forEach(pair => {
-      const node1 = nodeMap.get(pair[0]);
-      const node2 = nodeMap.get(pair[1]);
+    correlationData.forEach(corr => {
+      const node1 = nodesMap.get(corr.point1Index);
+      const node2 = nodesMap.get(corr.point2Index);
 
       if (node1 && node2) {
-        const geometry = new THREE.BufferGeometry().setFromPoints([node1.position, node2.position]);
-        const line = new THREE.Line(geometry, material);
+        const points = [node1.position, node2.position];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        
+        // Choose material based on correlation strength/sign (example)
+        const material = corr.correlationValue > 0 ? lineMaterialStrongPositive : lineMaterialStrongNegative;
+        
+        const line = new THREE.Line(geometry, material.clone()); // Clone material if changing properties later
         this.analysisGroup.add(line);
       } else {
-        console.warn('Could not find nodes for correlation pair:', pair);
+        console.warn(`Could not find nodes for correlation pair: ${corr.point1Index} <-> ${corr.point2Index}`);
       }
     });
-    console.log(`Added ${this.analysisGroup.children.length} lines to analysisGroup.`);
+    console.log(`Added ${this.analysisGroup.children.length} correlation lines to analysisGroup.`);
   }
 
   /**
-   * Clear all correlation lines from the analysis group.
+   * Clears all correlation lines from the scene.
    */
   clearCorrelationLines() {
-    console.log('Clearing correlation lines.');
+    console.log('Clearing correlation lines...');
+    let removedCount = 0;
     while (this.analysisGroup.children.length > 0) {
       const line = this.analysisGroup.children[0];
       this.analysisGroup.remove(line);
-      // Optional: Dispose geometry/material
-      // if (line.geometry) line.geometry.dispose();
-      // if (line.material) line.material.dispose();
+      if (line.geometry) line.geometry.dispose();
+      if (line.material) {
+          if (Array.isArray(line.material)) {
+              line.material.forEach(m => m.dispose());
+          } else {
+              line.material.dispose();
+          }
+      }
+      removedCount++;
     }
+    console.log(`Removed ${removedCount} correlation lines.`);
   }
 }
 

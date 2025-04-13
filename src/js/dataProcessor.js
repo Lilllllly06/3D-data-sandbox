@@ -705,9 +705,9 @@ class DataProcessor {
   createColorMap(column, dataSet = this.processedData) {
     console.log(`Creating color map for column: ${column}`);
     if (!column || !this.dataColumns.includes(column)) {
-        console.warn(`Color column "${column}" not found or invalid. Using default.`);
-        // Fallback to a default or first column if needed
+        console.warn(`Color column \"${column}\" not found or invalid. Using default.`);
         column = this.dataColumns[0]; 
+        if (!column) return { type: 'error', message: 'No valid columns available for coloring.' }; // Handle no columns case
     }
     
     const columnType = this.metaData.numericColumns.includes(column) ? 'numeric' : 'categorical';
@@ -715,10 +715,21 @@ class DataProcessor {
     if (columnType === 'numeric') {
       const stats = this.getColumnStats(column, dataSet);
       console.log(`Numeric color map range: ${stats.min} - ${stats.max}`);
+      // If min and max are the same, handle potential division by zero in getColor
+      if (stats.min === stats.max) {
+          console.warn(`Numeric column \"${column}\" has uniform values. Using single color.`);
+          return {
+              type: 'numeric',
+              min: stats.min,
+              max: stats.max,
+              isUniform: true
+          }
+      }
       return {
         type: 'numeric',
         min: stats.min,
-        max: stats.max
+        max: stats.max,
+        isUniform: false
       };
     } else {
       const colorMap = {};
@@ -726,11 +737,20 @@ class DataProcessor {
         dataSet
           .map(row => row[column])
           .filter(val => val !== null && val !== undefined)
-      )];
+      )].sort(); // Sort for more consistent color assignment
       
       console.log(`Categorical color map for ${uniqueValues.length} unique values.`);
+      
+      // Generate a base hue, then create analogous colors around it
+      const baseHue = Math.random(); // Base hue (0-1)
+      const hueSpread = 0.3; // How much the hue varies (adjust as needed)
+      const saturation = 0.65; // Keep saturation relatively consistent
+      const lightness = 0.6;  // Keep lightness consistent
+
       uniqueValues.forEach((value, index) => {
-        colorMap[value] = this.hslToHex(index / uniqueValues.length, 0.7, 0.5);
+        const hueOffset = (index / Math.max(1, uniqueValues.length -1) - 0.5) * hueSpread; // Center spread around base
+        const hue = (baseHue + hueOffset + 1) % 1; // Calculate hue and wrap around
+        colorMap[value] = this.hslToHex(hue, saturation, lightness);
       });
       
       return {
@@ -804,15 +824,21 @@ class DataProcessor {
    * @returns {string} Hex color code
    */
   getColor(value, colorMap) {
-    if (!colorMap) return '#FFFFFF';
+    if (!colorMap || colorMap.type === 'error') return '#FFFFFF'; // Default white if error or no map
     
     if (colorMap.type === 'numeric') {
-      // For numeric values, interpolate on a gradient
+      // Handle case where all numeric values are the same
+      if (colorMap.isUniform) {
+          return this.hslToHex(0.6, 0.7, 0.5); // Use a default color (e.g., blue)
+      }
+      // For numeric values, interpolate on a gradient (e.g., blue to yellow)
       const normalizedValue = this.normalizeValue(value, colorMap.min, colorMap.max, 0, 1);
-      return this.hslToHex(normalizedValue * 0.7, 0.7, 0.5); // Use hue range of 0-0.7 (red to blue)
+      // Interpolate hue from blue (0.6) to yellow (0.16)
+      const hue = 0.6 - normalizedValue * 0.44; 
+      return this.hslToHex(hue, 0.7, 0.5); 
     } else {
       // For categorical values, use the map
-      return colorMap.map[value] || '#CCCCCC';
+      return colorMap.map[value] || '#CCCCCC'; // Default grey for unknown categories
     }
   }
 
