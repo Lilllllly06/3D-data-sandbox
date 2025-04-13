@@ -536,7 +536,37 @@ class DataProcessor {
 
       const visualizationData = pointsToCluster.map((point, index) => {
           const clusterIndex = point.clusterIndex;
+          
+          // === Defensive Check ===
+          if (clusterIndex === undefined || clusterIndex < 0 || clusterIndex >= centroids.length) {
+              console.error(`DataProcessor: Invalid clusterIndex (${clusterIndex}) for point ${index}. Centroids count: ${centroids.length}`);
+              // Assign to a default position or skip
+              return { 
+                  id: `point-${index}-error`,
+                  position: { x: 0, y: 0, z: 0 }, 
+                  originalData: point.originalRow,
+                  cluster: -1, 
+                  color: '#FF0000', // Red for error
+                  label: `Error: Invalid cluster index for point ${index}`
+              };
+          }
+          // === End Check ===
+          
           const centroid = centroids[clusterIndex]; // Normalized centroid
+          
+          // === Defensive Check ===
+          if (!Array.isArray(centroid) || centroid.length !== dimensions) {
+              console.error(`DataProcessor: Invalid centroid structure for cluster ${clusterIndex}:`, centroid);
+               return { 
+                  id: `point-${index}-error`,
+                  position: { x: 0, y: 0, z: 0 }, 
+                  originalData: point.originalRow,
+                  cluster: clusterIndex, 
+                  color: '#FF0000', // Red for error
+                  label: `Error: Invalid centroid for cluster ${clusterIndex}, point ${index}`
+              };
+          }
+          // === End Check ===
           
           // Base position from normalized centroid, scaled up
           const baseX = (centroid[0] - 0.5) * clusterSpreadFactor * 2;
@@ -622,25 +652,45 @@ class DataProcessor {
 
           // Recalculate centroids
           if (changed) {
-              centroids = new Array(k).fill(0).map(() => new Array(dimensions).fill(0));
+              const newCentroids = new Array(k).fill(0).map(() => new Array(dimensions).fill(0));
               let counts = new Array(k).fill(0);
               for (let i = 0; i < dataPoints.length; i++) {
                   let cluster = assignments[i];
+                  // === Defensive Check ===
+                  if (cluster === undefined || cluster < 0 || cluster >= k) {
+                      console.error(`KMeans: Invalid cluster assignment (${cluster}) for point ${i} during centroid recalc.`);
+                      continue; // Skip this point if assignment is bad
+                  }
+                  // === End Check ===
                   counts[cluster]++;
                   for (let d = 0; d < dimensions; d++) {
-                      centroids[cluster][d] += dataPoints[i][d];
+                      // === Defensive Check ===
+                      if (isNaN(dataPoints[i][d])) {
+                          console.warn(`KMeans: NaN feature value encountered for point ${i}, dimension ${d}. Skipping contribution.`);
+                          continue;
+                      }
+                      // === End Check ===
+                      newCentroids[cluster][d] += dataPoints[i][d];
                   }
               }
               for (let j = 0; j < k; j++) {
                   if (counts[j] > 0) {
                       for (let d = 0; d < dimensions; d++) {
-                          centroids[j][d] /= counts[j];
+                          newCentroids[j][d] /= counts[j];
                       }
+                      // === Log Check ===
+                      // console.log(`KMeans: Centroid ${j} updated to:`, newCentroids[j].map(v => v.toFixed(3)));
+                      // === End Log Check ===
                   } else {
-                      // Handle empty cluster - reinitialize centroid randomly
-                      centroids[j] = [...dataPoints[Math.floor(Math.random() * dataPoints.length)]];
+                      console.warn(`KMeans: Cluster ${j} became empty. Re-initializing centroid.`);
+                      // Reinitialize centroid randomly but ensure it's a valid point
+                      let randomIndex = Math.floor(Math.random() * dataPoints.length);
+                      newCentroids[j] = [...dataPoints[randomIndex]]; 
+                      // Mark as changed to ensure another iteration if assignments shift due to reinitialization
+                      changed = true; 
                   }
               }
+              centroids = newCentroids;
           }
       }
       console.log(`K-Means completed in ${iterations} iterations.`);

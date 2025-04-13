@@ -224,7 +224,7 @@ class Scene3D {
     
     if (intersects.length > 0) {
       const nodeObject = intersects[0].object;
-      const nodeData = this.dataPoints[nodeObject.userData.index];
+      const nodeData = this.dataPoints[nodeObject.userData.originalIndex];
       
       // Update tooltip content and position
       const tooltip = document.getElementById('tooltip');
@@ -286,7 +286,7 @@ class Scene3D {
     nodeObject.scale.set(1.5, 1.5, 1.5);
     
     // Update data info display
-    this.updateInfoPanel(nodeObject.userData.index);
+    this.updateInfoPanel(nodeObject.userData.originalIndex);
   }
 
   /**
@@ -531,9 +531,9 @@ class Scene3D {
         point.position.z
       );
       
-      // Store original material and index for later reference
+      // Store original material and ORIGINAL index for later reference
       nodeMesh.userData = {
-        index,
+        originalIndex: index, // Store the index from the original dataPoints array
         originalMaterial: material
       };
       
@@ -787,7 +787,7 @@ class Scene3D {
     const dimIntensity = 0.2;
     
     this.nodes.forEach(node => {
-      const originalIndex = node.userData.index; // Assuming userData.index holds original index
+      const originalIndex = node.userData.originalIndex; // Assuming userData.originalIndex holds original index
       
       if (highlightSet.has(originalIndex)) {
         // Apply highlight material modification
