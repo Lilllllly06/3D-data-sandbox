@@ -6,7 +6,7 @@ A desktop application for visualizing and manipulating data in 3D space. Import 
 ## 🎬 Demo
 
 <video width="100%" controls>
-  <source src="https://github.com/Lilllllly06/3D-data-sandbox/issues/1#issuecomment-2799887778" type="video/webm">
+  <source src="https://lilllly06.github.io/3D-data-sandbox/3D-data-box-demo.webm" type="video/webm">
   Your browser does not support the video tag.
 </video>
 
