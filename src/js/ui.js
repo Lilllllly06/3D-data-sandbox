@@ -504,25 +504,27 @@ class UIController {
     
     // Add check for empty data array
     if (!Array.isArray(visualizationData) || visualizationData.length === 0) {
-      console.warn('Data for visualization is empty or not an array.');
-      this.showError('Cannot update visualization: Processed data is empty.');
+      // If filtering resulted in no data, show a message but don't clear the scene
+      console.warn('Data for visualization is empty (likely due to filtering).');
+      this.showStatus('Filter returned no results.'); 
+      // Don't clear the scene, keep the previous state visible
+      // this.scene3D.clearVisualization(); // Avoid clearing if filter is just empty
       return;
     }
     
     try {
       console.log(`Preparing to visualize ${visualizationData.length} points.`);
-      // Clear existing visualization
-      console.log('Clearing previous visualization in Scene3D...');
-      this.scene3D.clearVisualization();
+      // Clear existing visualization is handled within populateScene
+      // console.log('Clearing previous visualization in Scene3D...');
+      // this.scene3D.clearVisualization(); // populateScene clears first
       
-      // NOTE: Data is already prepared by DataProcessor in importData
-      // We just need to pass it to the scene
-      console.log('Calling scene3D.visualizeData...');
-      this.scene3D.visualizeData(visualizationData);
+      // Call the correct scene method
+      console.log('Calling scene3D.populateScene...');
+      this.scene3D.populateScene(visualizationData);
       
-      // Reset camera to see all points
-      console.log('Resetting camera position...');
-      this.scene3D.resetCameraPosition();
+      // Reset camera only if explicitly needed (populateScene might handle it)
+      // console.log('Resetting camera position...');
+      // this.scene3D.resetCameraPosition(); // populateScene calls resetCameraView
       
       console.log(`Visualization updated successfully with ${visualizationData.length} points.`);
     } catch (error) {
