@@ -502,6 +502,19 @@ class DataProcessor {
   createKMeansLayout(data, k, xColumn, yColumn, zColumn, colorColumn, colorMap) {
       console.log(`Creating K-Means layout with K=${k}`);
       
+      // === Define dimensions based on input points ===
+      let dimensions = 0;
+      if (data.length > 0) {
+          // Assuming all points have the same number of features used for clustering
+          const sampleFeatures = [parseFloat(data[0][xColumn]) || 0, parseFloat(data[0][yColumn]) || 0, parseFloat(data[0][zColumn]) || 0];
+          dimensions = sampleFeatures.length; 
+      } else {
+          console.warn("KMeans layout called with empty data.");
+          return []; // Return early if no data
+      }
+      console.log(`KMeans layout using ${dimensions} dimensions.`);
+      // === End dimensions definition ===
+      
       // 1. Prepare data for clustering (use normalized coordinates)
       const pointsToCluster = data.map((row) => {
           const x = parseFloat(row[xColumn]) || 0;
