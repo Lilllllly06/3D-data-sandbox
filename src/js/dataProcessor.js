@@ -452,6 +452,11 @@ class DataProcessor {
     }).filter(point => point !== null); // Filter out any nulls if error occurred
     
     console.log(`Scatter layout created with ${visualizationData.length} points`);
+    // === Log first point for inspection ===
+    if (visualizationData.length > 0) {
+        console.log("DataProcessor: First scatter point data:", JSON.stringify(visualizationData[0]));
+    }
+    // === End Log ===
     return visualizationData;
   }
 

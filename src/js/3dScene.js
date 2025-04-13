@@ -515,6 +515,15 @@ class Scene3D {
     
     // Create nodes for each data point
     this.dataPoints.forEach((point, index) => {
+      // === Log entry and received data ===
+      console.log(`Scene3D: addNodeMesh called for index ${index}, point data:`, JSON.stringify(point));
+      // === End Log ===
+
+      if (!point || typeof point.position?.x !== 'number' || typeof point.position?.y !== 'number' || typeof point.position?.z !== 'number') {
+        console.warn('Skipping invalid data point:', point);
+        return;
+      }
+      
       // Create material with the point's color
       const material = new THREE.MeshPhongMaterial({
         color: new THREE.Color(point.color),
