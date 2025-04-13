@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 3D Data Sandbox
 
 A desktop application for visualizing and manipulating data in 3D space. Import CSV or JSON data files and explore them in a fully interactive 3D environment.
@@ -125,6 +124,3 @@ Built with:
 - [Electron](https://www.electronjs.org/)
 - [Three.js](https://threejs.org/)
 - [PapaParse](https://www.papaparse.com/) 
-=======
-# 3D-data-sandbox
->>>>>>> e622dba052ccccd7a150f3f437d79fe140e231fa
